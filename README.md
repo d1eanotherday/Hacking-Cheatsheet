@@ -70,17 +70,17 @@ examples for community names:
 
 Get list of running programms
 ```bash
-snmpwalk -c public -v1 192.168.31.227 1.3.6.1.2.1.25.4.2.1.2
+snmpwalk -c public -v1 <Target-IP> 1.3.6.1.2.1.25.4.2.1.2
 ```
 
 Get list of open ports
 ```bash
-snmpwalk -c public -v1 192.168.31.227 1.3.6.1.2.1.6.13.1.3
+snmpwalk -c public -v1 <Target-IP> 1.3.6.1.2.1.6.13.1.3
 ```
 
 Get list of installed software
 ```bash
-snmpwalk -c public -v1 192.168.31.227 1.3.6.1.2.1.25.6.3.1.2
+snmpwalk -c public -v1 <Target-IP> 1.3.6.1.2.1.25.6.3.1.2
 ```
 
 
