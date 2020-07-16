@@ -182,7 +182,7 @@ python3 -c 'import pty; pty.spawn("/bin/sh")'
 powershell.exe -ExecutionPolicy Bypass -NoLogo -NonInteractive -NoProfile -File file.ps1
 ```
 
-### RDP Connection from Linux host to Windows target
+### RDP connection from Linux host to Windows target
 ```cmd
 rdesktop -u <User> -p <Password> <Target-IP>
 ```
