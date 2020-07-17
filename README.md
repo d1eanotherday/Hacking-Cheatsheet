@@ -112,7 +112,19 @@ Create webserver listening to port 8080 offering files from current working dire
 ```bash
 python3 -m http.server 8080
 ```
-# Creating Exploits
+#Exploiting
+
+## SQL Injections
+
+### Detect number of columns for UNION attack:
+add a 
+```SQL
+ORDER BY 1--
+```
+statement to sql command.
+Than increase number after ORDER BY until you receive a error => Value before is the correct number of columns for UNION statement.
+
+
 
 ## Creating Exploits with msfvenom
 
@@ -174,6 +186,11 @@ python -c 'import pty; pty.spawn("/bin/sh")'
 ```
 ```bash
 python3 -c 'import pty; pty.spawn("/bin/sh")'
+```
+
+### Cracking encrypted zip-file
+```bash
+fcrackzip -u -D -p '/usr/share/wordlists/rockyou.txt' <zip-file-name>
 ```
 
 ## Windows Post Exploitation
