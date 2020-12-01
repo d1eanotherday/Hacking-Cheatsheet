@@ -1,23 +1,15 @@
 # Hacking-Cheatsheet
 In this repo I collect all commands, links, techniques and tricks I found during my work as pentester, hacker, OSCP student and hack the box fan.
 
-- [External Enumeration](#external-enumeration)
-  - [OSINT](#osint)
-  - [Port-Scanning](#port-scanning)
-  - [SMB-Enumeration](#smb-enumeration)
-  - [SMTP-Enumeration](#smtp-enumeration)
-  - [SNMP-Enumeration](#snmp-enumeration)
-- [File Transfer and File Downloads](#file-transfer-and-file-downloads)
-  - [Windows](#windows)
-  - [Python Webserver](#python-webserver)
-- [Creating Exploits](#creating-exploits)
-  - [Buffer Overflows](#buffer-overflows)
-- [Local Enumeration](#local-enumeration)
-  - [Local Linux Enumeration](#local-linux-enumeration)
-  - [Local Windows Enumeration](#local-windows-enumeration)
-- [Post Exploitation](#post-exploitation)
-  - [Linux Post Exploitation](#linux-post-exploitation)
-  - [Windows Post Exploitation](#windows-post-exploitation)
+# Basic Linux stuff you may need
+Keyword search in man pages:
+```bash
+man -k <KEYWORD>
+```
+Alternatively:
+```bash
+apropos <KEYWORD>
+```
 
 
 # External Enumeration
@@ -32,6 +24,12 @@ cewl <domain> -m 6 -w words.txt
 Scan all ports with service detection
 ```bash
 nmap -v -A -p- <Target-IP>
+```
+
+## Webserver Enumeration
+### Vhost Enumeration
+```
+nmap --script=http-vhosts --script-args domain=<DOMAIN> -p80,443 -v <Target/DOMAIN>
 ```
 
 ## SMB-Enumeration
@@ -51,6 +49,24 @@ Commands in rpcclient console:
 - srvinfo: Identify OS Versions
 - enumdomusers: List of Usernames on this server
 - getdompwinfo: Displays SMB password policy
+
+### CrackMapExec
+List of Users and Passwords to try:
+```bash
+crackmapexec smb <IP> -u users.txt -p passwords.txt
+```
+
+Login to WinRM (Alternative to evil-winrm):
+```bash
+crackmapexec winrm <IP> -u <USER> -p <PASSWORD>
+```
+Hint: User needs to be in group "Remote Management Users"
+
+Brute Usernames through RID
+```bash
+crackmapexec smb <IP> -u <USER> -p <PASSWORD> --rid-brute
+```
+
 
 ## SMTP-Enumeration
 SMTP-Enumeration with netcat
@@ -193,6 +209,23 @@ netstat -an
 ```bash
 icacls <filename>
 ```
+
+# Exploitation
+
+## SSH Exploitation
+Try given Username + Password combinations on SSH with nmap
+```bash
+nmap -p 22 --script ssh-brute --script-args userdb=userdb.lst,passdb=passdb.lst <IP>
+```
+
+## Local Windows Exploitation
+
+### Service Exploitation
+Dump full memory from service with Procdump
+```cmd
+.\procdump.exe -ma <PROCESS ID> <Filename>
+```
+
 
 # Post Exploitation
 ## Linux Post Exploitation
