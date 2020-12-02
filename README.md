@@ -135,7 +135,7 @@ Create webserver listening to port 8080 offering files from current working dire
 ```bash
 python3 -m http.server 8080
 ```
-#Exploiting
+# Exploiting
 
 ## SQL Injections
 
@@ -251,4 +251,10 @@ powershell.exe -ExecutionPolicy Bypass -NoLogo -NonInteractive -NoProfile -File 
 ### RDP connection from Linux host to Windows target
 ```cmd
 rdesktop -u <User> -p <Password> <Target-IP>
+```
+## Crypto-Fun
+Attacking Weak RSA Keys:
+[https://github.com/Ganapati/RsaCtfTool](https://github.com/Ganapati/RsaCtfTool)
+```bash
+python3 RsaCtfTool.py --publickey <PUBLIC KEY> --uncipherfile <CIPHERED FILE>
 ```
