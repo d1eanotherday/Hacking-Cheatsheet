@@ -220,7 +220,7 @@ Create webserver listening to port 8080 offering files from current working dire
 ```bash
 python3 -m http.server 8080
 ```
-#Exploiting
+# Exploiting
 
 ## SQL Injections
 
@@ -565,4 +565,11 @@ tcpdump -n port <PORT> -r <FILENAME.pcap>
 ### print packet data as Hex and ASCII
 ```bash
 tcpdump -nX -r <FILENAME.pcap>
+```
+
+## Crypto-Fun
+Attacking Weak RSA Keys:
+[https://github.com/Ganapati/RsaCtfTool](https://github.com/Ganapati/RsaCtfTool)
+```bash
+python3 RsaCtfTool.py --publickey <PUBLIC KEY> --uncipherfile <CIPHERED FILE>
 ```
