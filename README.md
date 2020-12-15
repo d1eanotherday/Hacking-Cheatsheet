@@ -55,10 +55,129 @@ whois <DOMAIN> / <IP>
 cewl <domain> -m 6 -w words.txt
 ```
 
-## Port-Scanning
-Scan all ports with service detection
+### The Harvester
+Find Domains, E-Mail-Adresses, Subdomains, ...
+```
+theharvester -d <DOMAIN> -b <DATASOURCE>
+```
+
+
+## DNS Enumeration
 ```bash
-nmap -v -A -p- <Target-IP>
+# Look for A record / IP Address
+host <DOMAIN>
+# Look for MX record
+host -t mx <DOMAIN>
+# Look for TXT record
+host -t txt <DOMAIN>
+# get Nameservers for Domain
+host -t ns <DOMAIN>
+```
+
+### DNS forward lookup brute force
+Needs a list with possible sub domains (e.g. use seclist [https://github.com/danielmiessler/SecLists](https://github.com/danielmiessler/SecLists))
+```bash
+for ip in $(cat <FILENAME>); do host $ip.<DOMAIN>; done
+```
+
+### DNS reverse lookup brute force
+```bash
+for ip in $(seq <START> <END>); do host <IP-BEGINNING>.$ip; done | grep -v "not found"
+```
+
+### DNS zone transfers
+```bash
+host -l <DOMAIN NAME> <DNS SERVER>
+```
+#### DNS zone transfer automation script
+```bash
+#!/bin/bash
+if [ -z "$1" ]; then
+	echo "[*] Zone transfer script"
+	echo "[*] Usage : $0 <DOMAIN> "
+	exit 0
+fi
+for server in $(host -t ns $1 | cut -d " " -f4;) do
+	host -l $1 $server | grep "has address"
+done
+```
+
+### DNSRecon
+DNS zone transfer:
+```bash
+dnsrecon -d <DOMAIN> -t axfr
+```
+Bruteforce subdomains:
+```bash
+dnsrecon -d <DOMAIN> -D <LISTNAME.txt> -t brt
+```
+
+### DNSEnum
+Tries zone transfer, also can use bruteforce for subdomains
+```bash
+dnsenum <DOMAIN>
+```
+
+### NMAP DNS NSE scripts
+```bash
+nmap --script=dns-zone-transfer -p 53 <TARGET>
+```
+
+## Port-Scanning
+
+### Nmap
+#### TCP Scans
+If nmap has access to raw sockets (run with sudo), nmap uses a SYN-Scan by default. Without sudo privileges: TCP-Connect-Scan.
+TCP-Connect-Scan takes much longer time than SYN-Scan.
+Nmap scans 1000 most common ports by default.
+
+To be sure to use SYN/Stealth scan:
+```bash
+sudo nmap -sS <IP>
+```
+
+Scan all ports with service and OS detection
+```bash
+sudo nmap -v -A -p- <Target-IP>
+```
+
+#### UDP Scans
+```bash
+sudo nmap -sU <IP>
+```
+
+#### combined TCP / UDP Scan
+```bash
+sudo nmap -sU -sS <IP>
+```
+
+#### Network Sweeping
+```bash
+nmap -sn <IP-START>.1-254	#e.g. nmap -sn 10.10.10.1-254
+```
+Save network sweep / ping sweep result in grepable format to file
+```bash
+nmap -v -sn <IP-Start>.1-254 -oG <FILENAME>
+grep Up <FILENAME> | cut -d " " -f 2 | head
+```
+TCP connect scan to top 20 ports with OS and version detection:
+```bash
+nmap -sT -A --top-ports=20 <IP-Start>.1-254 -oG <FILENAME>
+```
+
+### Basic port-Scanning with netcat/nc (TCP)
+```bash
+nc -nvv -w 1 -z <IP> <STARTPORT>-<ENDPORT>
+```
+
+### Basic port-Scanning with netcat/nc (UDP)
+```bash
+nc -nv -u -w 1 -z <IP> <STARTPORT>-<ENDPORT>
+```
+
+## Masscan
+```bash
+sudo masscan -p<PORT> <SUBNET>/<NETMASK> --rate=1000 -e <INTERFACE> --router-ip <IP OF GATEWAY>
 ```
 
 ## Webserver Enumeration
@@ -68,6 +187,10 @@ nmap --script=http-vhosts --script-args domain=<DOMAIN> -p80,443 -v <Target/DOMA
 ```
 
 ## SMB-Enumeration
+Get NetBIOS Information
+```bash
+sudo nbtscan -r <SUBNET>/<NETMASK>
+```
 
 ### Enum4Linux
 ```bash
@@ -102,6 +225,30 @@ Brute Usernames through RID
 crackmapexec smb <IP> -u <USER> -p <PASSWORD> --rid-brute
 ```
 
+### NMAP SMB NSE Scripts
+Determine operating system by SMB service:
+```bash
+nmap <IP> --script=smb-os-discovery
+```
+
+## NFS Enumeration
+Find to rpcbind registered services 
+```bash
+nmap -sV -p 111 --script=rpcinfo <START-IP>.1-254
+```
+
+### NMAP NFS enum scripts
+```bash
+nmap -p 111 --script nfs* <IP>
+```
+
+### Mount NFS shares
+```bash
+sudo mount -o nolock <IP>:/<SHARENAME> <LOCALMOUNTDIR>
+```
+If a file is not accessible on the share because it's limited to a specific user with a specific uuid:
+try to create a user with this uuid. Then su to this user and try to access the file.
+
 
 ## SMTP-Enumeration
 SMTP-Enumeration with netcat
@@ -111,27 +258,45 @@ for user in $(cat typical_usernames_SMTP_Enumeration.txt); do echo VRFY $user |n
 
 ## SNMP-Enumeration
 
+Scan for open SNMP ports with nmap
+```bash
+sudo nmap -sU --open -p 161 <START-IP>.1-254 -oG <FILENAME>
+```
+
 Enumerate set of IPs for different SNMP communities
 ```bash
 onesixtyone -c community_names.txt -i ips.txt
 ```
 examples for community names:
 - public
+- private
+- manager
 
+For following examples often "public" is used as community string.
 
-Get list of running programs
+Get all SNMP info
 ```bash
-snmpwalk -c public -v1 <Target-IP> 1.3.6.1.2.1.25.4.2.1.2
+snmpwalk -c <COMMUNITY-STRING> -v1 -t 10 <TARGET-IP>
+```
+
+Enumerate Users on Windows System
+```bash
+snmpwalk -c <COMMUNITY-STRING> -v1 <TARGET-IP> 1.3.6.1.4.1.77.1.2.25
+```
+
+Get list of running Windows processes
+```bash
+snmpwalk -c <COMMUNITY-STRING> -v1 <TARGET-IP> 1.3.6.1.2.1.25.4.2.1.2
 ```
 
 Get list of open ports
 ```bash
-snmpwalk -c public -v1 <Target-IP> 1.3.6.1.2.1.6.13.1.3
+snmpwalk -c <COMMUNITY-STRING> -v1 <TARGET-IP> 1.3.6.1.2.1.6.13.1.3
 ```
 
 Get list of installed software
 ```bash
-snmpwalk -c public -v1 <Target-IP> 1.3.6.1.2.1.25.6.3.1.2
+snmpwalk -c <COMMUNITY-STRING> -v1 <TARGET-IP> 1.3.6.1.2.1.25.6.3.1.2
 ```
 
 ## Wordpress Enumeration
